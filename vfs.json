@@ -1,0 +1,60 @@
+{
+  "name": "/",
+  "type": "dir",
+  "children": [
+    {
+      "name": "motd",
+      "type": "file",
+      "content": "Добро пожаловать в VFS Shell!\nВведите ls для списка файлов."
+    },
+    {
+      "name": "readme.txt",
+      "type": "file",
+      "content": "Это тестовый VFS для эмулятора оболочки."
+    },
+    {
+      "name": "home",
+      "type": "dir",
+      "children": [
+        {
+          "name": "user",
+          "type": "dir",
+          "children": [
+            {
+              "name": "notes.txt",
+              "type": "file",
+              "content": "Привет из notes.txt\nУчимся делать VFS.\nТретья строка."
+            },
+            {
+              "name": "todo.txt",
+              "type": "file",
+              "content": "Сделать лабу по ОС"
+            }
+          ]
+        },
+        {
+          "name": "guest",
+          "type": "dir",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "etc",
+      "type": "dir",
+      "children": [
+        {
+          "name": "config",
+          "type": "dir",
+          "children": [
+            {
+              "name": "settings.ini",
+              "type": "file",
+              "content": "key=value"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

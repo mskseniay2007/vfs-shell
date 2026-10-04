@@ -1,3 +1,3 @@
 #!/bin/bash
-# Тест 1: интерактивный режим (без --script)
+# Интерактивный режим с обычным VFS
 python main.py --vfs vfs.json

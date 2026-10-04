@@ -1,3 +1,3 @@
 #!/bin/bash
-# Тест 2: выполнение стартового скрипта
+# Запуск с обычным VFS и стартовым скриптом
 python main.py --vfs vfs.json --script start.txt

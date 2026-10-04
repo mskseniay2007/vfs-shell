@@ -1,0 +1,40 @@
+{
+  "name": "/",
+  "type": "dir",
+  "children": [
+    {
+      "name": "motd",
+      "type": "file",
+      "content": "Глубокий VFS. Проверяем вложенность."
+    },
+    {
+      "name": "a",
+      "type": "dir",
+      "children": [
+        {
+          "name": "b",
+          "type": "dir",
+          "children": [
+            {
+              "name": "c",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "d",
+                  "type": "dir",
+                  "children": [
+                    {
+                      "name": "deep.txt",
+                      "type": "file",
+                      "content": "Ты на глубине 5."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

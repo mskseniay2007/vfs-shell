@@ -1,30 +1,124 @@
-"""VFS Shell — эмулятор командной строки UNIX-подобной ОС."""
+"""VFS Shell — эмулятор командной строки UNIX-подобной ОС.
+
+Этап 3: подключена виртуальная файловая система (VFS) из JSON.
+"""
 
 import argparse
+import json
 
+
+# ---------- Работа с VFS ----------
+
+def load_vfs(path):
+    """Загружает VFS из JSON-файла в память."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def find_child(node, name):
+    """Ищет дочерний узел с заданным именем."""
+    for child in node.get("children", []):
+        if child["name"] == name:
+            return child
+    return None
+
+
+def get_node(root, path_list):
+    """Возвращает узел по списку имён от корня."""
+    current = root
+    for name in path_list:
+        current = find_child(current, name)
+        if current is None:
+            return None
+    return current
+
+
+def resolve_path(root, cwd, target):
+    """
+    Превращает target (путь от cwd) в список имён от корня.
+    Возвращает список или None, если путь некорректен.
+    """
+    if target.startswith("/"):
+        new_path = []
+        parts = [p for p in target.split("/") if p]
+    else:
+        new_path = list(cwd)
+        parts = [p for p in target.split("/") if p]
+
+    for part in parts:
+        if part == ".":
+            continue
+        if part == "..":
+            if new_path:
+                new_path.pop()
+            continue
+        current_node = get_node(root, new_path)
+        child = find_child(current_node, part)
+        if child is None or child["type"] != "dir":
+            return None
+        new_path.append(part)
+    return new_path
+
+
+def path_to_str(path_list):
+    """Превращает список имён в строку вида /home/user."""
+    if not path_list:
+        return "/"
+    return "/" + "/".join(path_list)
+
+
+# ---------- Команды ----------
+
+def cmd_ls(root, cwd, args):
+    """Выводит содержимое каталога."""
+    target = cwd
+    if args:
+        new_path = resolve_path(root, cwd, args[0])
+        if new_path is None:
+            print(f"ls: {args[0]}: нет такого файла или каталога")
+            return
+        target = new_path
+
+    node = get_node(root, target)
+    if node is None or node["type"] != "dir":
+        print(f"ls: не каталог")
+        return
+
+    children = node.get("children", [])
+    if not children:
+        return
+    for child in children:
+        suffix = "/" if child["type"] == "dir" else ""
+        print(child["name"] + suffix)
+
+
+def cmd_cd(root, cwd, args):
+    """Меняет текущий каталог. Возвращает новый cwd."""
+    if not args:
+        return []
+    new_path = resolve_path(root, cwd, args[0])
+    if new_path is None:
+        print(f"cd: {args[0]}: нет такого каталога")
+        return cwd
+    return new_path
+
+
+# ---------- Обработка команд ----------
 
 def parse_command(line):
-    """Принимает строку, возвращает (команда, [аргументы])."""
+    """Разбивает строку на команду и аргументы."""
     parts = line.strip().split()
     if not parts:
         return None, []
     return parts[0], parts[1:]
 
 
-def cmd_ls(args):
-    """Заглушка: печатает, что получила команду ls."""
-    print(f"ls: команда='ls', аргументы={args}")
-
-
-def cmd_cd(args):
-    """Заглушка: печатает, что получила команду cd."""
-    print(f"cd: команда='cd', аргументы={args}")
-
-
-def process_line(line):
-    """Разбирает строку и решает, что делать. Возвращает True/False."""
+def process_line(line, state):
+    """
+    Обрабатывает строку. state — словарь с root и cwd.
+    Возвращает False, если нужно выйти.
+    """
     cmd, args = parse_command(line)
-
     if cmd is None:
         return True
 
@@ -32,25 +126,33 @@ def process_line(line):
         print("Выход.")
         return False
     elif cmd == "ls":
-        cmd_ls(args)
+        cmd_ls(state["root"], state["cwd"], args)
     elif cmd == "cd":
-        cmd_cd(args)
+        state["cwd"] = cmd_cd(state["root"], state["cwd"], args)
     else:
         print(f"{cmd}: команда не найдена")
-
     return True
 
+
+# ---------- Запуск ----------
 
 def parse_args():
     """Разбирает аргументы командной строки."""
     parser = argparse.ArgumentParser(description="Эмулятор shell с VFS")
-    parser.add_argument("--vfs", help="Путь к JSON-файлу VFS")
+    parser.add_argument("--vfs", required=True, help="Путь к JSON-файлу VFS")
     parser.add_argument("--script", help="Путь к стартовому скрипту")
     return parser.parse_args()
 
 
-def run_script(path, handle_line):
-    """Читает файл скрипта и вызывает handle_line для каждой команды."""
+def print_motd(root):
+    """Печатает motd из корня VFS, если он есть."""
+    motd = find_child(root, "motd")
+    if motd and motd["type"] == "file":
+        print(motd.get("content", ""))
+
+
+def run_script(path, state):
+    """Выполняет команды из файла-скрипта."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             for raw_line in f:
@@ -59,8 +161,8 @@ def run_script(path, handle_line):
                     continue
                 if line.lstrip().startswith("#"):
                     continue
-                print(f"user@vfs:/$ {line}")
-                if not handle_line(line):
+                print(f"user@vfs:{path_to_str(state['cwd'])}$ {line}")
+                if not process_line(line, state):
                     break
     except FileNotFoundError:
         print(f"Ошибка: файл скрипта '{path}' не найден.")
@@ -68,32 +170,35 @@ def run_script(path, handle_line):
         print(f"Ошибка при выполнении скрипта: {e}")
 
 
-def repl():
-    """Главный цикл: спрашиваем — обрабатываем — спрашиваем снова."""
-    print("VFS Shell v0.1 (этап 2). Введите 'exit' для выхода.")
-
+def repl(state):
+    """Главный цикл интерактивного режима."""
+    print("VFS Shell v0.1 (этап 3). Введите 'exit' для выхода.")
     while True:
         try:
-            line = input("user@vfs:/$ ")
+            line = input(f"user@vfs:{path_to_str(state['cwd'])}$ ")
         except (EOFError, KeyboardInterrupt):
             print()
             break
-
-        if not process_line(line):
+        if not process_line(line, state):
             break
 
 
 def main():
-    """Точка входа: разбираем аргументы и решаем, что делать."""
+    """Точка входа."""
     args = parse_args()
 
     print(f"[DEBUG] VFS: {args.vfs}")
     print(f"[DEBUG] Скрипт: {args.script}")
 
+    root = load_vfs(args.vfs)
+    state = {"root": root, "cwd": []}
+
+    print_motd(root)
+
     if args.script:
-        run_script(args.script, process_line)
+        run_script(args.script, state)
     else:
-        repl()
+        repl(state)
 
 
 if __name__ == "__main__":

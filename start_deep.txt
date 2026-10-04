@@ -1,0 +1,10 @@
+# Тест глубокого VFS
+ls
+cd a
+cd b
+cd c
+cd d
+ls
+cd /
+ls
+exit

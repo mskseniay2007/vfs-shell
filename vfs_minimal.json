@@ -1,0 +1,16 @@
+{
+  "name": "/",
+  "type": "dir",
+  "children": [
+    {
+      "name": "motd",
+      "type": "file",
+      "content": "Минимальный VFS. Только motd и один файл."
+    },
+    {
+      "name": "hello.txt",
+      "type": "file",
+      "content": "Привет, мир!"
+    }
+  ]
+}
