@@ -1,6 +1,6 @@
 """VFS Shell — эмулятор командной строки UNIX-подобной ОС.
 
-Этап 3: подключена виртуальная файловая система (VFS) из JSON.
+Этап 4: реализованы команды uname и uniq.
 """
 
 import argparse
@@ -81,7 +81,7 @@ def cmd_ls(root, cwd, args):
 
     node = get_node(root, target)
     if node is None or node["type"] != "dir":
-        print(f"ls: не каталог")
+        print("ls: не каталог")
         return
 
     children = node.get("children", [])
@@ -101,6 +101,39 @@ def cmd_cd(root, cwd, args):
         print(f"cd: {args[0]}: нет такого каталога")
         return cwd
     return new_path
+
+
+def cmd_uname(args):
+    """Печатает имя системы."""
+    print("VFS-Shell 1.0")
+
+
+def cmd_uniq(root, cwd, args):
+    """Читает файл из VFS и удаляет подряд идущие одинаковые строки."""
+    if not args:
+        print("uniq: укажите имя файла")
+        return
+
+    target = args[0]
+    if target.startswith("/"):
+        path_list = [p for p in target.split("/") if p]
+    else:
+        path_list = list(cwd) + [p for p in target.split("/") if p]
+
+    node = get_node(root, path_list)
+    if node is None:
+        print(f"uniq: {target}: нет такого файла")
+        return
+    if node["type"] != "file":
+        print(f"uniq: {target}: это каталог")
+        return
+
+    content = node.get("content", "")
+    previous = None
+    for line in content.splitlines():
+        if line != previous:
+            print(line)
+        previous = line
 
 
 # ---------- Обработка команд ----------
@@ -129,6 +162,10 @@ def process_line(line, state):
         cmd_ls(state["root"], state["cwd"], args)
     elif cmd == "cd":
         state["cwd"] = cmd_cd(state["root"], state["cwd"], args)
+    elif cmd == "uname":
+        cmd_uname(args)
+    elif cmd == "uniq":
+        cmd_uniq(state["root"], state["cwd"], args)
     else:
         print(f"{cmd}: команда не найдена")
     return True
@@ -172,7 +209,7 @@ def run_script(path, state):
 
 def repl(state):
     """Главный цикл интерактивного режима."""
-    print("VFS Shell v0.1 (этап 3). Введите 'exit' для выхода.")
+    print("VFS Shell v0.1 (этап 4). Введите 'exit' для выхода.")
     while True:
         try:
             line = input(f"user@vfs:{path_to_str(state['cwd'])}$ ")

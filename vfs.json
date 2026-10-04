@@ -29,6 +29,11 @@
               "name": "todo.txt",
               "type": "file",
               "content": "Сделать лабу по ОС"
+            },
+            {
+              "name": "dups.txt",
+              "type": "file",
+              "content": "яблоко\nяблоко\nбанан\nбанан\nбанан\nвишня\nяблоко\nяблоко"
             }
           ]
         },
