@@ -1,0 +1,6 @@
+# это тестовый скрипт для этапа 2
+ls
+cd /home
+ls /home/user
+blabla
+exit
