@@ -1,6 +1,6 @@
 """VFS Shell — эмулятор командной строки UNIX-подобной ОС.
 
-Этап 4: реализованы команды uname и uniq.
+Этап 5: реализованы команды touch и mkdir (изменения только в памяти).
 """
 
 import argparse
@@ -34,10 +34,7 @@ def get_node(root, path_list):
 
 
 def resolve_path(root, cwd, target):
-    """
-    Превращает target (путь от cwd) в список имён от корня.
-    Возвращает список или None, если путь некорректен.
-    """
+    """Превращает target (путь от cwd) в список имён от корня."""
     if target.startswith("/"):
         new_path = []
         parts = [p for p in target.split("/") if p]
@@ -65,6 +62,34 @@ def path_to_str(path_list):
     if not path_list:
         return "/"
     return "/" + "/".join(path_list)
+
+
+def split_parent_and_name(target, cwd):
+    """Разбивает путь 'a/b/c' на (путь родителя, имя)."""
+    if target.startswith("/"):
+        parts = [p for p in target.split("/") if p]
+        base = []
+    else:
+        parts = [p for p in target.split("/") if p]
+        base = list(cwd)
+
+    if not parts:
+        return None, None
+
+    name = parts[-1]
+    parent_parts = parts[:-1]
+
+    parent_path = list(base)
+    for p in parent_parts:
+        if p == ".":
+            continue
+        if p == "..":
+            if parent_path:
+                parent_path.pop()
+            continue
+        parent_path.append(p)
+
+    return parent_path, name
 
 
 # ---------- Команды ----------
@@ -136,6 +161,64 @@ def cmd_uniq(root, cwd, args):
         previous = line
 
 
+def cmd_touch(root, cwd, args):
+    """Создаёт пустой файл (только в памяти)."""
+    if not args:
+        print("touch: укажите имя файла")
+        return
+
+    for target in args:
+        parent_path, name = split_parent_and_name(target, cwd)
+        if parent_path is None:
+            print(f"touch: {target}: некорректное имя")
+            continue
+
+        parent = get_node(root, parent_path)
+        if parent is None or parent["type"] != "dir":
+            print(f"touch: {target}: нет такого каталога")
+            continue
+
+        existing = find_child(parent, name)
+        if existing is not None:
+            if existing["type"] == "dir":
+                print(f"touch: {target}: это каталог")
+            continue
+
+        parent.setdefault("children", []).append({
+            "name": name,
+            "type": "file",
+            "content": "",
+        })
+
+
+def cmd_mkdir(root, cwd, args):
+    """Создаёт пустую папку (только в памяти)."""
+    if not args:
+        print("mkdir: укажите имя каталога")
+        return
+
+    for target in args:
+        parent_path, name = split_parent_and_name(target, cwd)
+        if parent_path is None:
+            print(f"mkdir: {target}: некорректное имя")
+            continue
+
+        parent = get_node(root, parent_path)
+        if parent is None or parent["type"] != "dir":
+            print(f"mkdir: {target}: нет такого каталога")
+            continue
+
+        if find_child(parent, name) is not None:
+            print(f"mkdir: {target}: уже существует")
+            continue
+
+        parent.setdefault("children", []).append({
+            "name": name,
+            "type": "dir",
+            "children": [],
+        })
+
+
 # ---------- Обработка команд ----------
 
 def parse_command(line):
@@ -147,10 +230,7 @@ def parse_command(line):
 
 
 def process_line(line, state):
-    """
-    Обрабатывает строку. state — словарь с root и cwd.
-    Возвращает False, если нужно выйти.
-    """
+    """Обрабатывает строку. Возвращает False, если нужно выйти."""
     cmd, args = parse_command(line)
     if cmd is None:
         return True
@@ -166,6 +246,10 @@ def process_line(line, state):
         cmd_uname(args)
     elif cmd == "uniq":
         cmd_uniq(state["root"], state["cwd"], args)
+    elif cmd == "touch":
+        cmd_touch(state["root"], state["cwd"], args)
+    elif cmd == "mkdir":
+        cmd_mkdir(state["root"], state["cwd"], args)
     else:
         print(f"{cmd}: команда не найдена")
     return True
@@ -209,7 +293,7 @@ def run_script(path, state):
 
 def repl(state):
     """Главный цикл интерактивного режима."""
-    print("VFS Shell v0.1 (этап 4). Введите 'exit' для выхода.")
+    print("VFS Shell v0.1 (этап 5). Введите 'exit' для выхода.")
     while True:
         try:
             line = input(f"user@vfs:{path_to_str(state['cwd'])}$ ")

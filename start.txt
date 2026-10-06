@@ -1,28 +1,51 @@
-# Тестовый скрипт для этапа 4
+# Тестовый скрипт для этапа 5
 
-# Работа с VFS
+# Смотрим стартовое состояние
 ls
 cd home
 cd user
 ls
 
-# uname
-uname
+# Создаём новый файл в текущей папке
+touch newfile.txt
+ls
 
-# uniq — нормальный файл с дублями
-uniq dups.txt
+# Создаём файл с абсолютным путём
+touch /home/user/another.txt
+ls
 
-# uniq — без аргумента (ошибка)
-uniq
+# Повторный touch — не ошибка, просто ничего не делает
+touch newfile.txt
 
-# uniq — файл не существует (ошибка)
-uniq nonexistent.txt
+# touch в несуществующей папке — ошибка
+touch /no/such/dir/file.txt
 
-# uniq — это каталог (ошибка)
-uniq /home
+# Создаём папку в текущей папке
+mkdir newdir
+ls
 
-# Возврат в корень
+# Создаём вложенную папку
+mkdir /home/user/subdir
+ls
+
+# Повторный mkdir — ошибка
+mkdir newdir
+
+# mkdir в несуществующем месте — ошибка
+mkdir /no/such/dir/newfolder
+
+# Без аргумента — ошибка
+touch
+mkdir
+
+# Возвращаемся в корень
 cd /
 ls
+
+# Проверяем команды из этапа 4
+uname
+cd home/user
+uniq dups.txt
+cd /
 
 exit
